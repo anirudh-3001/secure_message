@@ -57,15 +57,6 @@ npm-debug.log*
 .env.test.local
 .env.production.local
 
-# Frontend build files (if you have a frontend)
-/frontend/node_modules/
-/frontend/build/
-/frontend/dist/
-/frontend/.env
-/frontend/.env.local
-/frontend/.env.development
-/frontend/.env.production
-
 # Temporary files
 *.tmp
 *.temp
