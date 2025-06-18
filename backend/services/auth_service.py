@@ -1,5 +1,3 @@
-# services/auth_service.py
-
 from flask_jwt_extended import create_access_token
 from firebase_admin import firestore
 import bcrypt
@@ -72,7 +70,7 @@ def update_login_attempts(email, success):
 
 def register_user(data):
     """
-    Registers a new user with email, password, public_key, encrypted_private_key.
+    Registers a new user with email, password, public_key, encrypted_private_key, and username.
     """
     try:
         # Validate required fields
@@ -86,7 +84,8 @@ def register_user(data):
         public_key = data.get('public_key')
         encrypted_private_key = data.get('encrypted_private_key')
         role = data.get('role', 'user')
-        
+        username = data.get('username')  # <-- NEW
+
         # Validate email format
         if not validate_email(email):
             return {"error": "Invalid email format"}, 400
@@ -108,7 +107,8 @@ def register_user(data):
             password=hashed_pw,
             role=role,
             public_key=public_key,
-            encrypted_private_key=encrypted_private_key
+            encrypted_private_key=encrypted_private_key,
+            username=username  # <-- NEW
         )
 
         # Save to Firestore
@@ -168,7 +168,8 @@ def login_user(data):
             "expires_in": 3600,  # seconds (1 hour)
             "role": user.role,
             "public_key": user.public_key,
-            "encrypted_private_key": user.encrypted_private_key
+            "encrypted_private_key": user.encrypted_private_key,
+            "username": user.username  # <-- OPTIONAL
         }, 200
     except Exception as e:
         return {"error": f"Login failed: {str(e)}"}, 500
@@ -217,3 +218,22 @@ def get_user_encrypted_private_key(email):
     except Exception as e:
         print(f"Error getting encrypted private key: {str(e)}")
         return None
+
+def get_all_users(exclude_email=None):
+    """Return a list of users excluding the current one."""
+    try:
+        users_ref = db.collection("users")
+        all_users = users_ref.stream()
+
+        result = []
+        for doc in all_users:
+            user_data = doc.to_dict()
+            if user_data["email"] != exclude_email:
+                result.append({
+                    "email": user_data["email"],
+                    "username": user_data.get("username", "")  # optional fallback
+                })
+        return result
+    except Exception as e:
+        print(f"Error fetching users: {str(e)}")
+        return []

@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -15,7 +13,7 @@ from routes.chat_routes import chat_bp
 
 def create_app():
     app = Flask(__name__)
-    
+
     # Load config
     app.config['DEBUG'] = Config.DEBUG
     app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
@@ -26,19 +24,19 @@ def create_app():
     # Initialize JWT
     jwt = JWTManager(app)
 
-    # Initialize Firebase
+    # Initialize Firebase (must be called BEFORE any Firestore usage!)
     initialize_firebase()
 
     # Set up scheduled task for message cleanup
     scheduler = BackgroundScheduler()
-    # Run cleanup every day at midnight
+    # Run cleanup every 12 hours
     scheduler.add_job(
         func=lambda: delete_expired_messages()[0],  # Extract just the result, not status code
-        trigger='interval', 
-        hours=12  # Run every 12 hours
+        trigger='interval',
+        hours=12
     )
     scheduler.start()
-    
+
     # Make sure scheduler shuts down properly when app exits
     atexit.register(lambda: scheduler.shutdown())
 

@@ -1,13 +1,12 @@
-# services/chat_service.py
-
-from firebase_admin import firestore
 from datetime import datetime, timedelta
 import re
 import time
 from functools import wraps
 from models.message import Message
+from firebase_config import get_firestore  # <-- Use this to get Firestore client!
 
-db = firestore.client()
+# Always get the Firestore client this way, ensuring Firebase is initialized
+db = get_firestore()
 
 # Rate limiting configuration
 MESSAGE_LIMITS = {}

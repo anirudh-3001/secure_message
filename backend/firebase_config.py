@@ -1,26 +1,27 @@
-# firebase_config.py
-
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from config import Config
-import os
 import base64
 import tempfile
 
 firebase_app = None
 db = None
 
-
 def initialize_firebase():
     global firebase_app, db
 
-    if firebase_app:
+    # Defensive check: Only raise when initialization is requested
+    if not Config.FIREBASE_CREDENTIAL_PATH:
+        raise ValueError("FIREBASE_CREDENTIAL_PATH is not set. Please set it in your .env file or as an environment variable.")
+
+    if firebase_app and db:
+        # Already initialized
         return firebase_app, db
 
-    if Config.FIREBASE_CREDENTIAL_PATH and Config.FIREBASE_CREDENTIAL_PATH.endswith(".json"):
+    if Config.FIREBASE_CREDENTIAL_PATH.endswith(".json"):
         cred = credentials.Certificate(Config.FIREBASE_CREDENTIAL_PATH)
     else:
-        # Assume base64-encoded credentials (more secure in env)
+        # Assume base64-encoded credentials (e.g. from env variable)
         decoded = base64.b64decode(Config.FIREBASE_CREDENTIAL_PATH)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
             tmp_file.write(decoded)
@@ -33,14 +34,14 @@ def initialize_firebase():
     db = firestore.client()
     return firebase_app, db
 
-
 def get_firestore():
-    if not db:
+    global db
+    if db is None:
         initialize_firebase()
     return db
 
-
 def get_auth():
-    if not firebase_app:
+    global firebase_app
+    if firebase_app is None:
         initialize_firebase()
     return auth
