@@ -1,9 +1,10 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000", // Change to your Flask backend URL if different
+  baseURL: "http://localhost:5000", // Adjust if your Flask backend runs elsewhere
 });
 
+// Attach token to every request if present
 API.interceptors.request.use(config => {
   const token = localStorage.getItem("token");
   if (token) {

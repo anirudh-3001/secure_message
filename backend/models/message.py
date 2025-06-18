@@ -1,14 +1,21 @@
-# message.py
-
 from datetime import datetime
+from typing import Optional
 
 class Message:
     """
     Message model representing the schema for message data.
     Only contains data structure and validation rules - no database operations.
     """
-    def __init__(self, sender, receiver, encrypted_content, 
-                 timestamp=None, expires_at=None, read=False, message_id=None):
+    def __init__(
+        self,
+        sender: str,
+        receiver: str,
+        encrypted_content: str,
+        timestamp: Optional[str] = None,
+        expires_at: Optional[str] = None,
+        read: bool = False,
+        message_id: Optional[str] = None
+    ):
         self.id = message_id
         self.sender = sender
         self.receiver = receiver
@@ -16,8 +23,8 @@ class Message:
         self.timestamp = timestamp or datetime.utcnow().isoformat()
         self.expires_at = expires_at
         self.read = read
-        
-    def to_dict(self):
+
+    def to_dict(self) -> dict:
         """Convert message object to dictionary for storage"""
         return {
             'sender': self.sender,
@@ -27,9 +34,9 @@ class Message:
             'expires_at': self.expires_at,
             'read': self.read
         }
-        
+
     @staticmethod
-    def from_dict(data, message_id=None):
+    def from_dict(data: dict, message_id: Optional[str] = None):
         """Create message object from dictionary"""
         return Message(
             sender=data.get('sender'),
@@ -40,9 +47,9 @@ class Message:
             read=data.get('read', False),
             message_id=message_id
         )
-    
+
     @property
-    def is_expired(self):
+    def is_expired(self) -> bool:
         """Check if message has expired"""
         if not self.expires_at:
             return False

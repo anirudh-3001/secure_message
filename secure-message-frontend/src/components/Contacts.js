@@ -1,19 +1,12 @@
-// src/components/Contacts.js
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../services/api";
 
 const Contacts = ({ onSelectUser }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+    API.get("/users")
       .then((res) => {
         setUsers(res.data);
         setLoading(false);

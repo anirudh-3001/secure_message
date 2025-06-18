@@ -19,16 +19,84 @@ function Chat() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [plainText, setPlainText] = useState("");
   const [decryptedMessages, setDecryptedMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [privateKey, setPrivateKey] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchInbox();
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+      return;
+    }
     fetchUsers();
+    fetchInbox();
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
-    if (messages.length > 0) decryptInboxMessages();
-  }, [messages]);
+    if (messages.length > 0 && privateKey) {
+      decryptInboxMessages();
+    }
+    // eslint-disable-next-line
+  }, [messages, privateKey]);
+
+  useEffect(() => {
+    const loadPrivateKey = async () => {
+      try {
+        let encryptedPrivateKey =
+          localStorage.getItem("encryptedPrivateKey") ||
+          (await fetchAndStoreEncryptedPrivateKey());
+        let password = localStorage.getItem("userPassword");
+        if (!password) {
+          password = prompt("Enter your password to decrypt your private key:");
+          if (!password) {
+            toast.error("Password required to decrypt your private key.");
+            navigate("/login");
+            return;
+          }
+          localStorage.setItem("userPassword", password);
+        }
+        const privateKeyBase64 = await decryptPrivateKeyWithPassword(
+          encryptedPrivateKey,
+          password
+        );
+        const pk = await importPrivateKey(privateKeyBase64);
+        setPrivateKey(pk);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to decrypt your private key. Please log in again.");
+        handleLogout();
+      }
+    };
+
+    loadPrivateKey();
+    // eslint-disable-next-line
+  }, []);
+
+  const fetchAndStoreEncryptedPrivateKey = async () => {
+    try {
+      const res = await API.get("/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const encryptedKey = res.data.encrypted_private_key;
+      localStorage.setItem("encryptedPrivateKey", encryptedKey);
+      return encryptedKey;
+    } catch (err) {
+      toast.error("Failed to retrieve your private key.");
+      handleLogout();
+      throw err;
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("encryptedPrivateKey");
+    localStorage.removeItem("userPassword");
+    navigate("/login");
+  };
 
   const fetchUsers = async () => {
     try {
@@ -44,25 +112,24 @@ function Chat() {
   };
 
   const fetchInbox = async () => {
+    setLoading(true);
     try {
-      const res = await API.get("/inbox");
+      const res = await API.get("/api/chat/inbox", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       setMessages(res.data);
+      setLoading(false);
     } catch (err) {
-      if (err.response?.status === 401) navigate("/");
+      setLoading(false);
+      if (err.response?.status === 401) handleLogout();
       else toast.error("Failed to fetch messages.");
     }
   };
 
   const decryptInboxMessages = async () => {
     try {
-      const encryptedPrivateKey = localStorage.getItem("encryptedPrivateKey");
-      const password = localStorage.getItem("userPassword");
-      const privateKeyBase64 = await decryptPrivateKeyWithPassword(
-        encryptedPrivateKey,
-        password
-      );
-      const privateKey = await importPrivateKey(privateKeyBase64);
-
       const decrypted = await Promise.all(
         messages.map(async (msg) => {
           try {
@@ -89,14 +156,26 @@ function Chat() {
       return;
     }
     try {
-      const keyRes = await API.get(`/public_key/${selectedUser}`);
+      const keyRes = await API.get(`/api/auth/public_key/${selectedUser}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       const recipientPublicKey = await importPublicKey(keyRes.data.public_key);
       const encryptedContent = await encryptWithPublicKey(plainText, recipientPublicKey);
 
-      await API.post("/send", {
-        receiver: selectedUser,
-        encrypted_content: encryptedContent
-      });
+      await API.post(
+        "/api/chat/send",
+        {
+          receiver: selectedUser,
+          encrypted_content: encryptedContent,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       toast.success("Message sent successfully");
       setPlainText("");
       fetchInbox();
@@ -105,11 +184,20 @@ function Chat() {
     }
   };
 
+  const filteredMessages = decryptedMessages.filter(
+    (msg) =>
+      (msg.sender === selectedUser && msg.receiver !== msg.sender) ||
+      (msg.receiver === selectedUser && msg.sender !== msg.receiver)
+  );
+
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="chat-layout">
         <div className="chat-sidebar">
+          <div className="logout-btn" style={{ marginBottom: 20 }}>
+            <button onClick={handleLogout}>Logout</button>
+          </div>
           <h3>Contacts</h3>
           <ul>
             {users.map((user) => (
@@ -132,17 +220,23 @@ function Chat() {
             <FaUserCircle size={24} /> {selectedUser || "Select a user to chat"}
           </div>
           <div className="chat-messages">
-            {decryptedMessages
-              .filter((msg) => msg.sender === selectedUser)
-              .map((msg, idx) => (
-                <div key={idx} className="chat-message">
-                  <div className="chat-meta">
-                    <strong>From:</strong> {msg.sender} <br />
-                    <small>{new Date(msg.timestamp).toLocaleString()}</small>
-                  </div>
-                  <div className="chat-decrypted">{msg.plaintext}</div>
+            {loading && <div>Loading messages...</div>}
+            {!loading && !filteredMessages.length && (
+              <div>No messages to display.</div>
+            )}
+            {filteredMessages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`chat-message ${msg.sender === selectedUser ? "from-them" : "from-me"}`}
+              >
+                <div className="chat-meta">
+                  <strong>{msg.sender === selectedUser ? "From" : "To"}:</strong>{" "}
+                  {msg.sender === selectedUser ? msg.sender : msg.receiver} <br />
+                  <small>{new Date(msg.timestamp).toLocaleString()}</small>
                 </div>
-              ))}
+                <div className="chat-decrypted">{msg.plaintext}</div>
+              </div>
+            ))}
           </div>
           {selectedUser && (
             <form onSubmit={handleSend} className="chat-form">

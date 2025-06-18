@@ -5,6 +5,7 @@ import re
 import time
 from datetime import timedelta
 from functools import wraps
+from flask import jsonify
 from models.user import User
 
 db = firestore.client()
@@ -219,8 +220,8 @@ def get_user_encrypted_private_key(email):
         print(f"Error getting encrypted private key: {str(e)}")
         return None
 
-def get_all_users(exclude_email=None):
-    """Return a list of users excluding the current one."""
+def get_all_users():
+    """Return a list of users (email and username)."""
     try:
         users_ref = db.collection("users")
         all_users = users_ref.stream()
@@ -228,12 +229,29 @@ def get_all_users(exclude_email=None):
         result = []
         for doc in all_users:
             user_data = doc.to_dict()
-            if user_data["email"] != exclude_email:
-                result.append({
-                    "email": user_data["email"],
-                    "username": user_data.get("username", "")  # optional fallback
-                })
-        return result
+            result.append({
+                "email": user_data["email"],
+                "username": user_data.get("username", "")  # optional fallback
+            })
+        return jsonify(result), 200
     except Exception as e:
         print(f"Error fetching users: {str(e)}")
-        return []
+        return jsonify([]), 500
+
+def get_user_by_email(email):
+    """
+    Fetch user by email (for /api/auth/me).
+    Returns a SimpleNamespace for attribute access, or None.
+    """
+    try:
+        if not email:
+            return None
+        doc = db.collection("users").document(email).get()
+        if not doc.exists:
+            return None
+        user_data = doc.to_dict()
+        from types import SimpleNamespace
+        return SimpleNamespace(**user_data)
+    except Exception as e:
+        print(f"Error in get_user_by_email: {str(e)}")
+        return None

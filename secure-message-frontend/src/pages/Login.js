@@ -15,6 +15,10 @@ const Login = () => {
       const res = await API.post("/api/auth/login", { email, password });
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("role", res.data.role);
+
+      // Save password temporarily (for private key decryption)
+      localStorage.setItem("userPassword", password);
+
       navigate("/chat");
     } catch (err) {
       setErrorMsg(err.response?.data?.error || "Login failed.");

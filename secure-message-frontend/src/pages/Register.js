@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../firebase';
+import { useNavigate, Link } from 'react-router-dom';
+import API from '../services/api';
 import {
   generateRSAKeyPair,
   exportPublicKey,
   exportPrivateKey,
-  encryptPrivateKeyWithPassword
+  encryptPrivateKeyWithPassword,
 } from '../utils/crypto';
 import './Auth.css';
 
@@ -21,30 +20,31 @@ const Register = () => {
     e.preventDefault();
 
     try {
-      // Firebase user creation
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Generate RSA key pair
+      // Generate key pair
       const { publicKey, privateKey } = await generateRSAKeyPair();
-
-      // Export keys to base64
       const exportedPublicKey = await exportPublicKey(publicKey);
       const exportedPrivateKey = await exportPrivateKey(privateKey);
 
-      // Encrypt private key with user's password
+      // Encrypt private key with password
       const encryptedPrivateKey = await encryptPrivateKeyWithPassword(exportedPrivateKey, password);
 
-      // Store keys in Firestore or your backend (to be implemented)
+      // Send registration to backend
+      await API.post('/api/auth/register', {
+        name,
+        email,
+        password,
+        public_key: exportedPublicKey,
+        encrypted_private_key: encryptedPrivateKey,
+      });
 
-      // Set display name
-      await updateProfile(user, { displayName: name });
-
-      // Navigate to chat or login
       navigate('/login');
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Registration failed');
+      setError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Registration failed'
+      );
     }
   };
 
@@ -75,11 +75,12 @@ const Register = () => {
         />
         <button type="submit">Register</button>
         {error && <p className="error">{error}</p>}
+        <p>
+          Already have an account? <Link to="/login">Login here</Link>
+        </p>
       </form>
     </div>
   );
-  createUserWithEmailAndPassword(auth, email, password)
-
 };
 
 export default Register;

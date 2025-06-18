@@ -3,3 +3,4 @@ flask-jwt-extended
 firebase-admin
 pycryptodome
 python-dotenv
+bcrypt

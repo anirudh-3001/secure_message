@@ -19,7 +19,7 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
 
     # Enable CORS (adjust origin for production)
-    CORS(app, supports_credentials=True)
+    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
 
     # Initialize JWT
     jwt = JWTManager(app)
