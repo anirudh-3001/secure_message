@@ -4,3 +4,4 @@ firebase-admin
 pycryptodome
 python-dotenv
 bcrypt
+gunicorn
