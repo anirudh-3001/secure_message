@@ -6,3 +6,4 @@ pycryptodome
 python-dotenv
 bcrypt
 gunicorn
+apscheduler
