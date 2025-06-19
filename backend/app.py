@@ -47,6 +47,13 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
 
+    # 🔐 Add security headers to prevent Clickjacking
+    @app.after_request
+    def add_security_headers(response):
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Content-Security-Policy'] = "frame-ancestors 'none';"
+        return response
+
     # Health Check
     @app.route("/")
     def index():
