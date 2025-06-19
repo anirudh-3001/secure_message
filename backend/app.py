@@ -18,8 +18,11 @@ def create_app():
     app.config['DEBUG'] = Config.DEBUG
     app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
 
-    # Enable CORS (adjust origin for production)
-    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+    # Enable CORS for both local and deployed frontend
+    CORS(app, origins=[
+        "http://localhost:3000",             # Local development
+        "https://message-5f5d7.web.app"      # Your deployed frontend
+    ], supports_credentials=True)
 
     # Initialize JWT
     jwt = JWTManager(app)
