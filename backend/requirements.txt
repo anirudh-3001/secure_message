@@ -1,5 +1,6 @@
 flask
 flask-jwt-extended
+flask_cors
 firebase-admin
 pycryptodome
 python-dotenv
