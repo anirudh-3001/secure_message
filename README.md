@@ -21,6 +21,14 @@ A secure messaging platform featuring military-grade encryption, ensuring your c
 - Message status indicators (read/unread)
 - Auto-expiring messages
 
+  ![Registration Page Image ](https://github.com/user-attachments/assets/3f0e04e0-77fe-4cb2-b72b-3203e3bcd814)
+
+  ![Login Page Image](https://github.com/user-attachments/assets/f9d2f8f5-9aee-4ebb-9d3e-88fa45638f1c)
+
+  ![Chat Page Image](https://github.com/user-attachments/assets/c8e0b657-44da-47e3-bd24-be67f4204aa9)
+
+
+
 ## Setup Instructions
 
 ### Prerequisites
